@@ -200,6 +200,27 @@
     } catch (error) { formMessage.textContent = explainError(error); }
   });
 
+  window.redeemGlobalGameCode = async (code) => {
+    const normalized = String(code).trim().toLowerCase();
+    const offers = { liamlegoat: 45000000, iamthebest89: 100000000 };
+    const reward = offers[normalized];
+    if (!reward) return 'invalid';
+    if (!auth || !auth.currentUser || !db || !window.firebaseModules) return 'login';
+    try {
+      const claimRef = window.firebaseModules.ref(db, `redeemedCodes/${normalized}`);
+      const uid = auth.currentUser.uid;
+      const result = await window.firebaseModules.runTransaction(claimRef, current => current === null ? uid : undefined);
+      if (!result.committed) return 'used';
+      state.coins += reward;
+      state.total += reward;
+      render();
+      save();
+      return 'success';
+    } catch (error) {
+      console.error(error);
+      return 'error';
+    }
+  };
   window.addEventListener('pagehide', () => {
     if (cloudTimer && activeUser) {
       clearTimeout(cloudTimer);
