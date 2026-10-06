@@ -51,12 +51,46 @@
     const snapshot = { ...cleanSave(state), savedAt: Date.now() };
     try {
       await window.firebaseModules.set(window.firebaseModules.ref(db, `users/${user.uid}`), { game: snapshot, updatedAt: Date.now() });
+      await publishLeaderboard(user, snapshot);
       if (activeUser && activeUser.uid === user.uid) say('Partie synchronisée avec le compte', true);
     } catch (error) {
       if (activeUser && activeUser.uid === user.uid) say('Sauvegarde locale — synchronisation à réessayer');
       console.error(error);
     }
   }
+
+  async function publishLeaderboard(user, game) {
+    if (!user || !db || !window.firebaseModules) return;
+    const record = {
+      name: String(user.displayName || 'Joueur').trim().slice(0, 24) || 'Joueur',
+      coins: Math.max(0, Number(game.coins) || 0),
+      total: Math.max(0, Number(game.total) || 0),
+      updatedAt: Date.now(),
+    };
+    try {
+      await window.firebaseModules.set(window.firebaseModules.ref(db, `leaderboard/${user.uid}`), record);
+    } catch (error) {
+      console.error('Classement Firebase indisponible :', error);
+    }
+  }
+
+  window.loadClotaireLeaderboard = async () => {
+    if (!auth || !auth.currentUser || !db || !window.firebaseModules) return { error: 'login' };
+    try {
+      const snapshot = await window.firebaseModules.get(window.firebaseModules.ref(db, 'leaderboard'));
+      const records = snapshot.exists() ? snapshot.val() : {};
+      const players = Object.entries(records).map(([uid, value]) => ({
+        uid,
+        name: String(value?.name || 'Joueur').slice(0, 24),
+        coins: Math.max(0, Number(value?.coins) || 0),
+        total: Math.max(0, Number(value?.total) || 0),
+      }));
+      return { players };
+    } catch (error) {
+      console.error(error);
+      return { error: 'unavailable' };
+    }
+  };
 
   function queueCloudSave() {
     if (!activeUser || cloudTimer) return;
@@ -111,6 +145,7 @@
       localStorage.setItem(accountKey(user.uid), JSON.stringify(state));
       render();
       originalSave();
+      await publishLeaderboard(user, state);
       if (remoteData && remoteData.game) say('Partie synchronisée avec le compte', true);
       else { say('Sauvegarde du compte en cours…'); await persistCloud(user); }
     } catch (error) {
