@@ -66,6 +66,7 @@
       name: String(user.displayName || 'Joueur').trim().slice(0, 24) || 'Joueur',
       coins: Math.max(0, Number(game.coins) || 0),
       total: Math.max(0, Number(game.total) || 0),
+      rebirths: Math.max(0, Math.floor(Number(game.rebirths) || 0)),
       updatedAt: Date.now(),
     };
     try {
@@ -85,6 +86,7 @@
         name: String(value?.name || 'Joueur').slice(0, 24),
         coins: Math.max(0, Number(value?.coins) || 0),
         total: Math.max(0, Number(value?.total) || 0),
+        rebirths: Math.max(0, Math.floor(Number(value?.rebirths) || 0)),
       }));
       return { players };
     } catch (error) {
