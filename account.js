@@ -60,6 +60,11 @@
     }
   }
 
+  window.publishClotaireLeaderboard = async () => {
+    if (!activeUser || !db) return;
+    await publishLeaderboard(activeUser, cleanSave(state));
+  };
+
   async function publishLeaderboard(user, game) {
     if (!user || !db || !window.firebaseModules) return;
     const record = {
