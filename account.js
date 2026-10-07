@@ -12,7 +12,7 @@
   const modeSwitch = document.querySelector('#account-mode-switch');
   const status = document.querySelector('#save-status');
   const guestKey = 'clotaire-save-guest';
-  const defaults = () => ({ coins: 0, total: 0, rebirths: 0, click: 1, perSec: 0, owned: { sceptre: 0, page: 0, cheval: 0, village: 0, clicRoyal: 0, pluieOr: 0 } });
+  const defaults = () => ({ coins: 0, total: 0, rebirths: 0, rebirthShopBuys: [0,0,0,0], click: 1, perSec: 0, owned: { sceptre: 0, page: 0, cheval: 0, village: 0, clicRoyal: 0, pluieOr: 0 } });
   let auth = null, db = null, activeUser = null, cloudTimer = null, mode = 'signin';
   const originalSave = save;
 
@@ -33,6 +33,7 @@
     };
     return {
       coins: number(raw.coins, 0), total: number(raw.total, 0), rebirths: Math.floor(number(raw.rebirths, 0)),
+      rebirthShopBuys: Array.from({length:4}, (_, i) => Math.floor(number(raw.rebirthShopBuys?.[i], 0))),
       click: 1 + owned.sceptre + 5 * owned.cheval + 12 * owned.clicRoyal,
       perSec: owned.page + 12 * owned.village + 5 * owned.pluieOr,
       owned,
