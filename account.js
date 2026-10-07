@@ -50,7 +50,7 @@
     if (!user || !db) return;
     const snapshot = { ...cleanSave(state), savedAt: Date.now() };
     try {
-      await window.firebaseModules.set(window.firebaseModules.ref(db, `users/${user.uid}`), { game: snapshot, updatedAt: Date.now() });
+      await window.firebaseModules.update(window.firebaseModules.ref(db, `users/${user.uid}`), { game: snapshot, updatedAt: Date.now() });
       await publishLeaderboard(user, snapshot);
       if (activeUser && activeUser.uid === user.uid) say('Partie synchronisée avec le compte', true);
     } catch (error) {
@@ -89,6 +89,44 @@
     } catch (error) {
       console.error(error);
       return { error: 'unavailable' };
+    }
+  };
+
+  window.getClotaireDailyClaimDate = async () => {
+    const user = auth && auth.currentUser;
+    const key = `clotaire-daily-claim-${user ? user.uid : 'guest'}`;
+    if (user && db && window.firebaseModules) {
+      try {
+        const claim = await window.firebaseModules.get(window.firebaseModules.ref(db, `users/${user.uid}/dailyClaimDate`));
+        return claim.exists() ? claim.val() : localStorage.getItem(key);
+      } catch (error) { console.error(error); }
+    }
+    return localStorage.getItem(key);
+  };
+
+  window.claimClotaireDailyReward = async (dateKey, reward) => {
+    const user = auth && auth.currentUser;
+    const amount = Math.max(0, Math.floor(Number(reward) || 0));
+    if (!dateKey || amount < 1) return 'invalid';
+    const key = `clotaire-daily-claim-${user ? user.uid : 'guest'}`;
+    try {
+      if (user && db && window.firebaseModules) {
+        const claimRef = window.firebaseModules.ref(db, `users/${user.uid}/dailyClaimDate`);
+        const result = await window.firebaseModules.runTransaction(claimRef, current => current === dateKey ? undefined : dateKey);
+        if (!result.committed) return 'used';
+      } else {
+        if (localStorage.getItem(key) === dateKey) return 'used';
+        localStorage.setItem(key, dateKey);
+      }
+      localStorage.setItem(key, dateKey);
+      state.coins += amount;
+      state.total += amount;
+      render();
+      save();
+      return 'success';
+    } catch (error) {
+      console.error(error);
+      return 'error';
     }
   };
 
