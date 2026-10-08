@@ -283,13 +283,13 @@
 
   window.redeemGlobalGameCode = async (code) => {
     const normalized = String(code).trim().toLowerCase();
-    const offers = { liamlegoat: { coins: 45000000 }, iamthebest89: { coins: 100000000 }, nunino: { upgrades: 10 }, loveclo89: { upgrades: 10, rebirths: 5 } };
+    const offers = { liamlegoat: { coins: 45000000 }, iamthebest89: { coins: 100000000 }, nunino: { upgrades: 10 } };
     const offer = offers[normalized];
     if (!offer) return 'invalid';
     if (!auth || !auth.currentUser || !db || !window.firebaseModules) return 'login';
     try {
       const uid = auth.currentUser.uid;
-      const claimPath = ['nunino', 'loveclo89'].includes(normalized) ? `users/${uid}/redeemedCodes/${normalized}` : `redeemedCodes/${normalized}`;
+      const claimPath = normalized === 'nunino' ? `users/${uid}/redeemedCodes/${normalized}` : `redeemedCodes/${normalized}`;
       const claimRef = window.firebaseModules.ref(db, claimPath);
       const result = await window.firebaseModules.runTransaction(claimRef, current => current === null ? uid : undefined);
       if (!result.committed) return 'used';
@@ -302,7 +302,6 @@
         state.click = 1 + state.owned.sceptre + 5 * state.owned.cheval + 12 * state.owned.clicRoyal;
         state.perSec = state.owned.page + 12 * state.owned.village + 5 * state.owned.pluieOr;
       }
-      if (offer.rebirths) state.rebirths = (Number(state.rebirths) || 0) + offer.rebirths;
       render();
       save();
       return 'success';
