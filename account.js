@@ -283,17 +283,25 @@
 
   window.redeemGlobalGameCode = async (code) => {
     const normalized = String(code).trim().toLowerCase();
-    const offers = { liamlegoat: 45000000, iamthebest89: 100000000 };
-    const reward = offers[normalized];
-    if (!reward) return 'invalid';
+    const offers = { liamlegoat: { coins: 45000000 }, iamthebest89: { coins: 100000000 }, nunino: { upgrades: 10 } };
+    const offer = offers[normalized];
+    if (!offer) return 'invalid';
     if (!auth || !auth.currentUser || !db || !window.firebaseModules) return 'login';
     try {
-      const claimRef = window.firebaseModules.ref(db, `redeemedCodes/${normalized}`);
       const uid = auth.currentUser.uid;
+      const claimPath = normalized === 'nunino' ? `users/${uid}/redeemedCodes/${normalized}` : `redeemedCodes/${normalized}`;
+      const claimRef = window.firebaseModules.ref(db, claimPath);
       const result = await window.firebaseModules.runTransaction(claimRef, current => current === null ? uid : undefined);
       if (!result.committed) return 'used';
-      state.coins += reward;
-      state.total += reward;
+      if (offer.coins) {
+        state.coins += offer.coins;
+        state.total += offer.coins;
+      }
+      if (offer.upgrades) {
+        Object.keys(state.owned).forEach(id => { state.owned[id] += offer.upgrades; });
+        state.click = 1 + state.owned.sceptre + 5 * state.owned.cheval + 12 * state.owned.clicRoyal;
+        state.perSec = state.owned.page + 12 * state.owned.village + 5 * state.owned.pluieOr;
+      }
       render();
       save();
       return 'success';
