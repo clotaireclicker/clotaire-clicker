@@ -12,7 +12,7 @@
   const modeSwitch = document.querySelector('#account-mode-switch');
   const status = document.querySelector('#save-status');
   const guestKey = 'clotaire-save-guest';
-  const defaults = () => ({ coins: 0, total: 0, rebirths: 0, rebirthShopBuys: [0,0,0,0], click: 1, perSec: 0, owned: { sceptre: 0, page: 0, cheval: 0, village: 0, clicRoyal: 0, pluieOr: 0 } });
+  const defaults = () => ({ coins: 0, total: 0, rebirths: 0, ascensions: 0, ascensionRebirths: 0, rebirthShopBuys: [0,0,0,0], click: 1, perSec: 0, owned: { sceptre: 0, page: 0, cheval: 0, village: 0, clicRoyal: 0, pluieOr: 0 } });
   let auth = null, db = null, activeUser = null, cloudTimer = null, mode = 'signin';
   const originalSave = save;
 
@@ -32,7 +32,7 @@
         clicRoyal: Math.floor(number(counts.clicRoyal, 0)), pluieOr: Math.floor(number(counts.pluieOr, 0)),
     };
     return {
-      coins: number(raw.coins, 0), total: number(raw.total, 0), rebirths: Math.floor(number(raw.rebirths, 0)),
+      coins: number(raw.coins, 0), total: number(raw.total, 0), rebirths: Math.floor(number(raw.rebirths, 0)), ascensions: Math.floor(number(raw.ascensions, 0)), ascensionRebirths: Math.floor(number(raw.ascensionRebirths, 0)),
       rebirthShopBuys: Array.from({length:4}, (_, i) => Math.floor(number(raw.rebirthShopBuys?.[i], 0))),
       click: 1 + owned.sceptre + 5 * owned.cheval + 12 * owned.clicRoyal,
       perSec: owned.page + 12 * owned.village + 5 * owned.pluieOr,
@@ -71,7 +71,9 @@
       name: String(user.displayName || 'Joueur').trim().slice(0, 24) || 'Joueur',
       coins: Math.max(0, Number(game.coins) || 0),
       total: Math.max(0, Number(game.total) || 0),
-      rebirths: Math.max(0, Math.floor(Number(game.rebirths) || 0)),
+      rebirths: Math.max(0, Math.floor(Number(game.rebirths) || 0)) + Math.max(0, Math.floor(Number(game.ascensionRebirths) || 0)),
+      rebirthsCurrent: Math.max(0, Math.floor(Number(game.rebirths) || 0)),
+      ascensionRebirths: Math.max(0, Math.floor(Number(game.ascensionRebirths) || 0)),
       updatedAt: Date.now(),
     };
     try {
@@ -92,6 +94,8 @@
         coins: Math.max(0, Number(value?.coins) || 0),
         total: Math.max(0, Number(value?.total) || 0),
         rebirths: Math.max(0, Math.floor(Number(value?.rebirths) || 0)),
+        rebirthsCurrent: Math.max(0, Math.floor(Number(value?.rebirthsCurrent ?? value?.rebirths) || 0)),
+        ascensionRebirths: Math.max(0, Math.floor(Number(value?.ascensionRebirths) || 0)),
       }));
       return { players };
     } catch (error) {
@@ -283,13 +287,13 @@
 
   window.redeemGlobalGameCode = async (code) => {
     const normalized = String(code).trim().toLowerCase();
-    const offers = { liamlegoat: { coins: 45000000 }, iamthebest89: { coins: 100000000 }, nunino: { upgrades: 10 } };
+    const offers = { liamlegoat: { coins: 45000000 }, iamthebest89: { coins: 100000000 }, nunino: { upgrades: 10 }, loveclo89: { upgrades: 10, rebirths: 5 } };
     const offer = offers[normalized];
     if (!offer) return 'invalid';
     if (!auth || !auth.currentUser || !db || !window.firebaseModules) return 'login';
     try {
       const uid = auth.currentUser.uid;
-      const claimPath = normalized === 'nunino' ? `users/${uid}/redeemedCodes/${normalized}` : `redeemedCodes/${normalized}`;
+      const claimPath = ['nunino', 'loveclo89'].includes(normalized) ? `users/${uid}/redeemedCodes/${normalized}` : `redeemedCodes/${normalized}`;
       const claimRef = window.firebaseModules.ref(db, claimPath);
       const result = await window.firebaseModules.runTransaction(claimRef, current => current === null ? uid : undefined);
       if (!result.committed) return 'used';
@@ -302,6 +306,7 @@
         state.click = 1 + state.owned.sceptre + 5 * state.owned.cheval + 12 * state.owned.clicRoyal;
         state.perSec = state.owned.page + 12 * state.owned.village + 5 * state.owned.pluieOr;
       }
+      if (offer.rebirths) state.rebirths = (Number(state.rebirths) || 0) + offer.rebirths;
       render();
       save();
       return 'success';
