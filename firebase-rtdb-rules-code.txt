@@ -22,6 +22,11 @@
         ".read": "auth != null",
         ".write": "auth != null && !data.exists()",
         ".validate": "newData.isString() && newData.val() === auth.uid"
+      },
+      "batimentop10075": {
+        ".read": "auth != null",
+        ".write": "auth != null && !data.exists()",
+        ".validate": "newData.isString() && newData.val() === auth.uid"
       }
     }
   }

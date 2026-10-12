@@ -289,7 +289,7 @@
 
   window.redeemGlobalGameCode = async (code) => {
     const normalized = String(code).trim().toLowerCase();
-    const offers = { liamlegoat: { coins: 45000000 }, iamthebest89: { coins: 100000000 }, nunino: { upgrades: 10 }, loveclo89: { upgrades: 10, rebirths: 5 } };
+    const offers = { liamlegoat: { coins: 45000000 }, iamthebest89: { coins: 100000000 }, nunino: { upgrades: 10 }, loveclo89: { upgrades: 10, rebirths: 5 }, batimentop10075: { reset: true } };
     const offer = offers[normalized];
     if (!offer) return 'invalid';
     if (!auth || !auth.currentUser || !db || !window.firebaseModules) return 'login';
@@ -299,6 +299,15 @@
       const claimRef = window.firebaseModules.ref(db, claimPath);
       const result = await window.firebaseModules.runTransaction(claimRef, current => current === null ? uid : undefined);
       if (!result.committed) return 'used';
+      if (offer.reset) {
+        const clean = defaults();
+        Object.keys(state).forEach(key => delete state[key]);
+        Object.assign(state, clean);
+        render();
+        save();
+        await persistCloud(auth.currentUser);
+        return 'success';
+      }
       if (offer.coins) {
         state.coins += offer.coins;
         state.total += offer.coins;
